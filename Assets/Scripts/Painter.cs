@@ -46,6 +46,7 @@ public class Painter : MonoBehaviour
 
     public ShapeModel currentDrawnShape;
 
+    public ScanLineFill scanLineFill;
     public class Edge
     {
         public int x1, y1, x2, y2;
@@ -205,6 +206,10 @@ public class Painter : MonoBehaviour
                         currentDrawnShape.Vertices[currentDrawnShape.Vertices.Count - 1] = pixelUV;
 
                     break;
+                case DrawingMode.Rectangle:
+                    tempTargetRender.gameObject.SetActive(true);
+
+                    break;
                 
             }
         }
@@ -251,6 +256,9 @@ public class Painter : MonoBehaviour
 
                         // reset data yang sedang digambar
                         currentDrawnShape = null;
+
+                        ClearColor(ref temporaryTexture);
+                        RenderShapes(ref targetTexture);
                     }
 
                     break;
@@ -268,12 +276,15 @@ public class Painter : MonoBehaviour
                     // reset data yang sedang digambar
                     currentDrawnShape = null;
 
+                    ClearColor(ref temporaryTexture);
+                    RenderShapes(ref targetTexture);
                     break;
             }
             lastMouseUpPos = pixelUV;
+
             
-            ClearColor(ref temporaryTexture);
-            RenderShapes(ref targetTexture);
+            
+            
         }
 
                // Preview update
@@ -287,6 +298,14 @@ public class Painter : MonoBehaviour
                 case DrawingMode.Triangle:
                     // titik yang sedang digerakkan
                     currentDrawnShape.Vertices[currentDrawnShape.Vertices.Count - 1] = pixelUV;
+                    break;
+                case DrawingMode.Rectangle:
+
+                    currentDrawnShape.Vertices[0] = new Vector2(startDownPos.x, startDownPos.y);
+                    currentDrawnShape.Vertices[1] = new Vector2(pixelUV.x, startDownPos.y);
+                    currentDrawnShape.Vertices[2] = new Vector2(pixelUV.x, pixelUV.y);
+                    currentDrawnShape.Vertices[3] = new Vector2(startDownPos.x, pixelUV.y);
+
                     break;
             }
 
@@ -324,6 +343,8 @@ public class Painter : MonoBehaviour
             }
 
         }
+
+        
 
         lastPixelPosition = hit.textureCoord;
         tex.Apply();
@@ -409,6 +430,10 @@ public class Painter : MonoBehaviour
         targetTex.SetPixels(targetColors);
     }
 
+    public void RenderShapes()
+    {
+        RenderShapes(ref this.targetTexture);
+    }
     public void RenderShapes(ref Texture2D texture)
     {
         ClearColor(ref texture);
@@ -422,6 +447,10 @@ public class Painter : MonoBehaviour
         {
             ShapeModel imageModel = this.ShapeModels[i];
             edges.Clear();
+            // ========================================================
+            // ============== Tambahkan proses reset scanline =========
+            // ========================================================
+            scanLineFill.Clear();
 
             switch (imageModel.Mode)
             {
@@ -453,6 +482,12 @@ public class Painter : MonoBehaviour
 
                             // garis penghubung
                             edges.Add(new Edge(x1, y1, x2, y2));
+
+                            // ===================================
+                            // tambah data edge scanline
+                            // ===================================
+                            scanLineFill.AddEdge(x1, y1, x2, y2);
+
                         }
                     }
 
@@ -465,8 +500,17 @@ public class Painter : MonoBehaviour
                     y2 = (int)vertex2.y;
                     edges.Add(new Edge(x1, y1, x2, y2));
 
+                    // ===================================
+                    // tambah data edge terakhir di scanline
+                    // ===================================
+                    scanLineFill.AddEdge(x1, y1, x2, y2);
+
                     break;
             }
+
+            // proses scanline
+            this.scanLineFill.targetTex = texture;
+            scanLineFill.ProcessEdgeTable();
             
            // gambar garis dari masing-masing edge
             for (int itEdge = 0; itEdge < edges.Count; itEdge++)
@@ -477,6 +521,22 @@ public class Painter : MonoBehaviour
 
             texture.Apply();
 
+        }
+    }
+
+    public void SetCurrentDrawingMode(string drawingMode)
+    {
+        switch (drawingMode.ToLower())
+        {
+            case "line":
+                this.CurrentDrawingMode = DrawingMode.Line;
+                break;
+            case "triangle":
+                this.CurrentDrawingMode = DrawingMode.Triangle;
+                break;
+            case "rectangle":
+                this.CurrentDrawingMode = DrawingMode.Rectangle;
+                break;
         }
     }
 
