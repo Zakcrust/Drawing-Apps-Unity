@@ -7,9 +7,10 @@ using System.Linq;
 public class ScanLineFill : MonoBehaviour
 {
 
+    public Gradient gradient;
     // Target texture yang akan digambar
     public Texture2D targetTex;
-
+    Color color = new Color(0,0,0);
     // Struktur data penampung nilai edge
     [System.Serializable]
     public class EdgeBucket
@@ -33,6 +34,11 @@ public class ScanLineFill : MonoBehaviour
         EdgeTable.Clear();
     }
 
+    public void addColor(float R, float G, float B)
+    {
+        color = new Color(R,G,B,1);
+        ProcessEdgeTable();
+    }
 
     // menambah data edge
     public void AddEdge(int x1, int y1, int x2, int y2)
@@ -88,6 +94,8 @@ public class ScanLineFill : MonoBehaviour
 
     public void ProcessEdgeTable()
     {
+        
+
         if (EdgeTable.Count <= 0)
             return;
 
@@ -100,6 +108,8 @@ public class ScanLineFill : MonoBehaviour
         // untuk menentukan batas scan
         int minX = int.MaxValue;
         int maxX = int.MinValue;
+        int minY = int.MaxValue;
+        int maxY = int.MinValue;
         for (int itET = 0; itET < EdgeTable.Count; itET++)
         {
             EdgeBucket bucket = EdgeTable[itET];
@@ -169,9 +179,24 @@ public class ScanLineFill : MonoBehaviour
 
                         for (int itPair = pair1.x; itPair <= pair2.x; itPair++)
                         {
+                            Color newColor;
+                            // =============================
+                            // ubah proses pewarnaan dengan alpha compositing
+                            // =============================
+                            Color previousColor = targetTex.GetPixel(itPair, y);
+
                             // warnai kolom di antara dua garis potong
-                            Color color = Color.red;
-                            targetTex.SetPixel(itPair, y, color);
+                            Color colorGradient = gradient.Evaluate(Mathf.InverseLerp(minY, maxY, y));
+                            if(color != new Color(0,0,0))
+                            {
+                                newColor = color;
+                            }
+                            else
+                            {
+                                newColor = colorGradient + previousColor * (1f - colorGradient.a);
+                            }
+                            //color = new Color(0, 0, 0);
+                            targetTex.SetPixel(itPair, y, newColor);
                         }
                         edgePair.Clear();
                     }

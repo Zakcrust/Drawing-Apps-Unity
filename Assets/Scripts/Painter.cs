@@ -7,8 +7,8 @@ public class Painter : MonoBehaviour
 {
     public Material backgroundMaterial;
 
-    public const int TEXTURE_WIDTH = 256;
-    public const int TEXTURE_HEIGHT = 256;
+    public const int TEXTURE_WIDTH = 512;
+    public const int TEXTURE_HEIGHT = 512;
 
 
     [Tooltip("Target bidang gambar")]
@@ -99,6 +99,22 @@ public class Painter : MonoBehaviour
 
     void Update()
     {
+        // membatalkan proses penggambaran saat proses panning/zooming
+        if (Input.touchCount >= 2)
+        {
+            // membersihkan tampilan temporary
+            ClearColor(ref this.temporaryTexture);
+            this.temporaryTexture.Apply();
+
+            // reset garis poligon yang sedang dibuat
+            this.lineCount = 0;
+
+            // reset bentuk yang sedang digambar
+            this.currentDrawnShape = null;
+            return;
+        }
+
+
         RaycastHit hit;
         if (!Physics.Raycast(cam.ScreenPointToRay(Input.mousePosition), out hit))
             return;
@@ -538,6 +554,17 @@ public class Painter : MonoBehaviour
                 this.CurrentDrawingMode = DrawingMode.Rectangle;
                 break;
         }
+    }
+
+    public void clearShapes()
+    {
+        ShapeModels.Clear();
+        ClearColor(ref temporaryTexture);
+        RenderShapes(ref targetTexture);
+        lineCount = 0;
+        DrawingMode temp = this.CurrentDrawingMode;
+        this.CurrentDrawingMode = DrawingMode.Line;
+        this.CurrentDrawingMode = temp;
     }
 
 }
